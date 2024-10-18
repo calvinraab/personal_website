@@ -20,7 +20,6 @@ def blog():
     posts = load_blog_posts()
     return render_template('blog.html', posts=posts)
 
-
 @app.route('/blog/<string:post_slug>')
 def blog_post(post_slug):
     post_filename = f'{post_slug}.html'
@@ -36,7 +35,7 @@ def blog_post(post_slug):
 # Route to download the resume
 @app.route('/resume')
 def download_resume():
-    return send_from_directory(directory='.', path='resume.pdf')
+    return send_from_directory(directory='.', path='static/documents/resume.pdf')
 
 if __name__ == '__main__':
     app.run(debug=True)
