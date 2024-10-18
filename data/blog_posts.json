@@ -1,0 +1,14 @@
+[
+    {
+        "slug": "post1",
+        "title": "Understanding Neural Networks",
+        "description": "An introduction to neural networks and their applications.",
+        "date": "2024-10-01"
+    },
+    {
+        "slug": "post2",
+        "title": "Best Practices for Data Pipelines",
+        "description": "A guide to building scalable and efficient data pipelines.",
+        "date": "2024-10-05"
+    }
+]
