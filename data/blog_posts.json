@@ -1,9 +1,9 @@
 [
     {
-        "slug": "post1",
-        "title": "Understanding Neural Networks",
-        "description": "An introduction to neural networks and their applications.",
-        "date": "2024-10-01"
+        "slug": "elastic_beanstock_flask_deployment",
+        "title": "Deploying a Flask Application on AWS Elastic Beanstalk: A Step-by-Step Guide (Updated for 2024)",
+        "description": "A step by step walkthrough of flask deployment through AWS Elastic Beanstock with October 2024 launch templates update.",
+        "date": "2024-10-26"
     },
     {
         "slug": "post2",

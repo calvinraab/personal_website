@@ -1,0 +1,196 @@
+---
+title: "Deploying a Flask Application on AWS Elastic Beanstalk: A Step-by-Step Guide (Updated for 2024)"
+author: "Calvin Rab"
+date: "2024-10-26"
+categories: ["AWS", "Elastic Beanstalk", "Flask", "Python", "Cloud Deployment"]
+format: 
+    html:
+        embed-resources: true
+        code-fold: true
+---
+
+## Introduction
+
+This guide walks through the complete process of deploying a Flask application on AWS Elastic Beanstalk, with updated steps to address recent changes made by Amazon. As of October 1, 2024, AWS no longer supports **launch configurations** for new accounts in the Auto Scaling service; instead, **launch templates** are required. Unfortunately, AWS’s official documentation hasn’t yet been updated to reflect this change, which leads to errors when following the original Elastic Beanstalk deployment guide for Flask applications.
+
+If you're getting an error like `"Creating Auto Scaling launch configuration failed: Use launch templates to create configuration templates for your Auto Scaling groups,"` this guide will help you navigate around this issue.
+
+Although this tutorial is based on deploying a Python Flask application, the process applies to other languages too—you'll just need to select your preferred language during setup, and I'll highlight where to make those adjustments.
+
+I’ll provide a comprehensive, step-by-step walkthrough for setting up and deploying your application. If you’re only interested in fixing the launch configuration error, you can skip to the solution [here](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environments-cfg-autoscaling-launch-templates.html#:~:text=Starting%20on%20October%201%2C%202024,Amazon%20EC2%20Auto%20Scaling%20service) under the **"Option settings for launch templates"** section. From my experience, setting the **RootVolumeType** to `gp3` resolves the error in most cases.
+
+
+## Part 1: Setting Up Your Flask Application
+
+### Step 1: Create the Project Folder
+
+In your development environment, create a folder named `test_environment`.
+
+### Step 2: Create the Flask Application File
+
+Inside `test_environment`, create a file named `app.py` with the following content:
+
+```python
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Hello World! Welcome to my amazing Flask app."
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+This basic app will display a "Hello World" message on the homepage.
+
+### Step 3: Create and Activate a Virtual Environment
+
+Navigate to `test_environment` in the terminal and run:
+
+```bash
+python3 -m venv flask_virt_env
+```
+
+Activate the virtual environment:
+
+- **Mac/Linux**: `source flask_virt_env/bin/activate`
+- **Windows**: `flask_virt_env\Scripts\activate`
+
+### Step 4: Install Flask
+
+Install Flask while the virtual environment is active:
+
+```bash
+pip install Flask
+```
+
+### Step 5: Test the Application Locally
+
+Run the application:
+
+- **Mac/Linux**: `python app.py`
+- **Windows**: `flask run`
+
+Visit `http://127.0.0.1:5000` to see your app in action.
+
+### Step 6: Create `requirements.txt`
+
+Generate a `requirements.txt` file:
+
+```bash
+pip freeze | sed 's/ @ .*//' > requirements.txt
+```
+
+This will format your dependencies list for deployment.
+
+### Step 7: Ignore the Virtual Environment Folder
+
+Create an `.ebignore` file to exclude `flask_virt_env` from deployment:
+
+```plaintext
+flask_virt_env
+```
+
+## Part 2: Setting Up Elastic Beanstalk in the AWS Console
+
+### Step 8: Access Elastic Beanstalk
+
+In the AWS Console, search for **Elastic Beanstalk** and click **Create Environment**.
+
+### Step 9: Configure the Environment
+
+1. **Environment Type**: Choose **Web server environment**.
+2. **Application Name**: Set it to `test-environment`.
+3. **Platform**: Select **Python**. Choose another language if needed.
+4. **Application Code**: Select **Sample Application**.
+5. **Presets**: Choose **Single instance (free tier eligible)**.
+6. **Service Role**: Choose **Create and use new service role**.
+7. **EC2 Instance Profile**: Create an IAM role with these permissions:
+    - `AWSElasticBeanstalkMulticontainerDocker`
+    - `AWSElasticBeanstalkWebTier`
+    - `AWSElasticBeanstalkWorkerTier`
+8. **Root Volume Type**: Set **General Purpose (gp3)**.
+9. **Disable IMDSv1**: Make sure this setting is deactivated.
+
+Submit and wait a few minutes for Elastic Beanstalk to create the environment.
+
+## Part 3: Configuring AWS and Elastic Beanstalk CLI
+
+### Step 10: Configure AWS CLI
+
+1. **Install**: Follow the [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+2. **Verify**: Run `aws --version`.
+3. **Configure**: Use `aws configure` to set credentials and region.
+
+### Step 11: Install the Elastic Beanstalk CLI
+
+1. Download the EB CLI following the [quick start guide](https://github.com/aws/aws-elastic-beanstalk-cli-setup#macoslinux).
+2. Verify with `eb --version`.
+
+## Part 4: Deploying the Application Using the Elastic Beanstalk CLI
+
+### Step 12: Initialize the Elastic Beanstalk Application
+
+Run the following in `test_environment`:
+
+```bash
+eb init
+```
+
+Select your region and application name (`test-environment`). Ignore CodeCommit warnings.
+
+### Step 13: Set the Environment
+
+Run:
+
+```bash
+eb use test-environment
+```
+
+### Step 14: Deploy the Application
+
+Deploy your current version:
+
+```bash
+eb deploy --label v1.0.0
+```
+
+Elastic Beanstalk uploads a ZIP file of your application to S3.
+
+### Step 15: Confirm the Application Version
+
+Check your S3 bucket (typically named `elasticbeanstalk-<region>-<account-id>`) for the ZIP file, `v1.0.0.zip`. Then verify with:
+
+```bash
+aws elasticbeanstalk create-application-version \
+    --application-name test-environment \
+    --version-label v1.0.0 \
+    --source-bundle S3Bucket="your-s3-bucket-name",S3Key="test-environment/v1.0.0.zip"
+```
+
+### Step 16: Deploy the Application Version
+
+Deploy the version to your environment:
+
+```bash
+aws elasticbeanstalk update-environment \
+    --environment-name test-environment-env \
+    --version-label v1.0.0
+```
+
+Check **Events** in the Elastic Beanstalk Console to confirm successful deployment.
+
+## Part 5: Updating the Application
+
+Repeat Steps 12–16 for future updates, incrementing the version label (e.g., `v1.0.1`). Your app will be live on the domain associated with your environment.
+
+---
+
+## Conclusion
+
+By following these steps, you’ve deployed a Flask application on AWS Elastic Beanstalk using updated configurations to avoid launch configuration errors. This guide is designed to simplify your deployment while ensuring compatibility with AWS’s new requirements.
+
+Let me know if you run into any issues, and happy deploying!
+
